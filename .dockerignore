@@ -1,0 +1,10 @@
+secrets
+tls
+backups
+evidence
+*.env
+*.dump
+__pycache__
+docs
+report*
+tests

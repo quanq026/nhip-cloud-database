@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f8f8f5">
+  <title>Nhịp · Công việc của tôi</title>
+  <link rel="stylesheet" href="/static/style.css">
+  <script src="/static/app.js?v=20261105-user1" defer></script>
+</head>
+<body>
+  <div id="boot" class="boot" role="status">Đang mở không gian làm việc…</div>
+
+  <section id="login-view" class="login-view" hidden aria-labelledby="login-heading">
+    <div class="login-brand">
+      <a class="brand" href="/" aria-label="Nhịp, trang chủ"><span class="brand-mark" aria-hidden="true">n</span>Nhịp<span class="brand-dot">.</span></a>
+      <div class="login-intro"><span class="eyebrow">KHÔNG GIAN LÀM VIỆC</span><h1>Mọi việc<br>trong tầm tay.</h1><p>Theo dõi công việc, hạn hoàn thành<br>và những điều bạn đã làm được.</p></div>
+      <div class="login-decoration" aria-hidden="true"><span></span><span></span><span></span><i>✓</i></div>
+      <span class="login-footer">Một nơi cho công việc mỗi ngày.</span>
+    </div>
+    <div class="login-panel">
+      <form id="login-form" class="login-form">
+        <span class="eyebrow">CHÀO MỪNG TRỞ LẠI</span>
+        <h2 id="login-heading">Đăng nhập</h2>
+        <p class="muted">Mở danh sách công việc của bạn.</p>
+        <div id="login-error" class="error" role="alert" hidden></div>
+        <label for="email">Tên đăng nhập hoặc email</label>
+        <input id="email" name="email" type="text" autocomplete="username" placeholder="user1 hoặc ban@example.com" required maxlength="254">
+        <label for="password">Mật khẩu</label>
+        <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu" required>
+        <button id="login-submit" class="button primary" type="submit">Đăng nhập <span aria-hidden="true">↗</span></button>
+        <p class="login-note">Sử dụng tài khoản đã được cấp cho bạn.</p>
+      </form>
+    </div>
+  </section>
+
+  <div id="app-view" class="app-view" hidden>
+    <aside class="sidebar" aria-label="Điều hướng">
+      <a class="brand" href="/" aria-label="Nhịp, trang chủ"><span class="brand-mark" aria-hidden="true">n</span>Nhịp<span class="brand-dot">.</span></a>
+      <div class="workspace-label">KHÔNG GIAN CÁ NHÂN</div>
+      <nav><a class="nav-item active" href="#main" aria-current="page"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="m8 12 3 3 5-6"/></svg>Công việc của tôi<span id="nav-count" class="nav-count">0</span></a></nav>
+      <div class="sidebar-tip"><span class="tip-line"></span><p>Từng việc một.<br><strong>Thêm một bước tiến.</strong></p></div>
+      <div class="account"><span id="avatar" class="avatar" aria-hidden="true">N</span><div class="account-details"><strong>Tài khoản của tôi</strong><span id="account-email"></span></div><button id="logout" class="icon-button" type="button" aria-label="Đăng xuất" title="Đăng xuất"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5H5v14h4m5-11 4 4-4 4m-5-4h9"/></svg></button></div>
+    </aside>
+
+    <main id="main" class="main" tabindex="-1">
+      <header class="topbar"><span class="breadcrumb">Không gian cá nhân <span aria-hidden="true">/</span> <strong>Công việc</strong></span><span class="workspace-status"><span aria-hidden="true"></span>Không gian của bạn</span></header>
+      <div class="main-content">
+        <header class="page-header"><div><p id="today" class="eyebrow"></p><h1>Công việc của tôi<span>.</span></h1><p class="muted">Sắp xếp điều cần làm. Dành chỗ cho điều quan trọng.</p></div><button id="focus-create" class="button primary" type="button"><span class="plus" aria-hidden="true">+</span>Thêm công việc</button></header>
+
+        <section class="progress-summary" aria-label="Tiến độ công việc"><div class="progress-copy"><span class="summary-icon" aria-hidden="true">✓</span><p><strong id="progress-title">Chưa có công việc</strong><span id="progress-description">Thêm công việc đầu tiên để bắt đầu.</span></p></div><div class="progress-measure"><span id="progress-label">0%</span><div id="progress-bar" class="progress-track" role="progressbar" aria-label="Tỷ lệ hoàn thành" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><span id="progress-fill"></span></div></div></section>
+
+        <section class="tasks-section" aria-label="Danh sách công việc">
+          <div class="list-toolbar"><div class="filters" role="group" aria-label="Lọc công việc"><button class="filter active" data-filter="all" aria-pressed="true" type="button">Tất cả <span id="count-all">0</span></button><button class="filter" data-filter="open" aria-pressed="false" type="button">Chưa xong <span id="count-open">0</span></button><button class="filter" data-filter="done" aria-pressed="false" type="button">Hoàn thành <span id="count-done">0</span></button><button class="filter" data-filter="overdue" aria-pressed="false" type="button">Quá hạn <span id="count-overdue">0</span></button></div><button id="refresh" class="icon-button" type="button" title="Tải lại công việc" aria-label="Tải lại công việc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 7a7 7 0 0 1 11.5-1L20 9M4 15l2.5 3A7 7 0 0 0 18 17"/></svg></button></div>
+          <div id="app-error" class="error" role="alert" hidden></div>
+          <form id="create-form" class="create-form" aria-label="Thêm công việc"><span class="create-plus" aria-hidden="true">+</span><label class="sr-only" for="new-title">Tên công việc mới</label><input id="new-title" name="title" type="text" placeholder="Bạn cần làm gì tiếp theo?" required maxlength="200" autocomplete="off"><label class="sr-only" for="new-date">Hạn hoàn thành, không bắt buộc</label><input id="new-date" name="due_date" type="date" title="Hạn hoàn thành (không bắt buộc)"><button id="create-submit" class="button create-button" type="submit">Thêm <span aria-hidden="true">↵</span></button></form>
+          <div class="list-heading" aria-hidden="true"><span>CÔNG VIỆC</span><span>HẠN HOÀN THÀNH</span></div>
+          <div id="list-loading" class="list-loading" role="status" hidden><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span><span class="sr-only">Đang tải công việc…</span></div>
+          <ul id="task-list" class="task-list" aria-label="Công việc"></ul>
+          <div id="empty-state" class="empty-state" hidden><span class="empty-mark" aria-hidden="true">✓</span><h2 id="empty-title">Một khởi đầu mới</h2><p id="empty-description">Thêm công việc đầu tiên vào danh sách của bạn.</p></div>
+          <footer class="list-footer"><span id="list-total">0 công việc</span><span><kbd>Enter</kbd> để thêm nhanh</span></footer>
+        </section>
+        <footer class="page-footer"><span>NHỊP / KHÔNG GIAN CÁ NHÂN</span><span>Tập trung vào việc tiếp theo.</span></footer>
+      </div>
+    </main>
+  </div>
+
+  <dialog id="edit-dialog" aria-labelledby="edit-heading"><form id="edit-form" class="dialog-form"><div class="dialog-heading"><h2 id="edit-heading">Sửa công việc</h2><button class="icon-button" data-close="edit-dialog" type="button" aria-label="Đóng">×</button></div><div id="edit-error" class="error" role="alert" hidden></div><label for="edit-title">Tên công việc</label><input id="edit-title" type="text" required maxlength="200"><label for="edit-date">Hạn hoàn thành <span class="muted">(không bắt buộc)</span></label><input id="edit-date" type="date"><div class="dialog-actions"><button class="button secondary" data-close="edit-dialog" type="button">Hủy</button><button id="edit-submit" class="button primary" type="submit">Lưu thay đổi</button></div></form></dialog>
+  <dialog id="delete-dialog" aria-labelledby="delete-heading"><form id="delete-form" class="dialog-form"><div class="dialog-heading"><h2 id="delete-heading">Xóa công việc?</h2><button class="icon-button" data-close="delete-dialog" type="button" aria-label="Đóng">×</button></div><p id="delete-description" class="delete-description"></p><p class="muted">Công việc đã xóa sẽ không thể khôi phục.</p><div id="delete-error" class="error" role="alert" hidden></div><div class="dialog-actions"><button class="button secondary" data-close="delete-dialog" type="button" autofocus>Giữ lại</button><button id="delete-submit" class="button primary" type="submit">Xóa công việc</button></div></form></dialog>
+  <div id="announcement" class="sr-only" role="status" aria-live="polite"></div>
+</body>
+</html>
