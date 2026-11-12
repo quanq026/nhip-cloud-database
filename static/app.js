@@ -47,6 +47,18 @@ async function updateBackendVersion() {
   setTimeout(updateBackendVersion, 5000);
 }
 
+async function updateRouting() {
+  if (state.user && !document.hidden) {
+    try {
+      const data = await api(`/api/routing?t=${Date.now()}`, { cache: "no-store" });
+      $("routing-status").textContent = `Request gần nhất: frontend ${data.frontend_node} · backend ${data.backend_node} (${data.version})`;
+    } catch {
+      $("routing-status").textContent = "Chưa lấy được thông tin node. Đang thử lại…";
+    }
+  }
+  setTimeout(updateRouting, 5000);
+}
+
 function showLogin() {
   state.user = null;
   state.csrf = "";
@@ -358,5 +370,5 @@ for (const button of document.querySelectorAll("[data-close]")) button.addEventL
   catch (error) {
     showLogin();
     if (error.status !== 401) showError("login-error", error);
-  } finally { $("boot").hidden = true; updateBackendVersion(); }
+  } finally { $("boot").hidden = true; updateBackendVersion(); updateRouting(); }
 })();

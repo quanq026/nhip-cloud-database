@@ -130,7 +130,7 @@ kubectl scale deployment/nhip-backend -n nhip --replicas=2
 kubectl rollout status deployment/nhip-backend -n nhip
 
 # Cập nhật backend từ v1 lên v2, rồi quay lại phiên bản trước.
-kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-register
+kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-routing
 kubectl rollout status deployment/nhip-backend -n nhip
 kubectl rollout undo deployment/nhip-backend -n nhip
 kubectl rollout status deployment/nhip-backend -n nhip
@@ -139,6 +139,38 @@ kubectl rollout status deployment/nhip-backend -n nhip
 Trang đăng nhập hiển thị huy hiệu **Backend · v1/v2** từ `/version`, tự cập nhật khoảng 5 giây. Trong lúc rollout có thể có cả Pod v1 và v2; huy hiệu thể hiện Pod trả lời request gần nhất. `v2` là image demo có dấu phiên bản khác, không phải một tính năng mới. Xem [kịch bản và câu hỏi bảo vệ](docs/kich-ban-bao-ve.md).
 
 Để trình bày mất node, dừng **đúng `nhip-worker2` trong `rg-nhip-k8s`**, quan sát node `NotReady` và các Pod được tạo lại trên worker còn sống, sau đó khởi động lại VM. Chờ thao tác tắt hoàn tất trước khi gửi lệnh bật. Khi cả ba node đã `Ready`, có thể `kubectl rollout restart` từng deployment để phân bố lại Pod. Hostname của worker bị tắt không thể phục vụ; truy cập qua node còn hoạt động.
+
+Đã chuẩn bị script demo tắt rồi khôi phục **từng worker**. Chạy trên máy quản trị có Azure CLI đã đăng nhập đúng subscription, Python và SSH key có quyền vào control plane. Cần xác nhận host key control plane trước; nếu known-hosts nằm ở file riêng, đặt biến môi trường `NHIP_KNOWN_HOSTS` tới file đó. Script dừng một worker, quan sát Pod chuyển sang máy còn lại, bật lại worker và phân bố lại Pod; kết quả ghi vào `demo-result-worker1.json` hoặc `demo-result-worker2.json` tại thư mục hiện tại.
+
+```sh
+python infra/azure/demo-worker.py worker1
+```
+
+Chờ worker 1 phục hồi hoàn toàn, sau đó mới chạy worker 2:
+
+```sh
+python infra/azure/demo-worker.py worker2
+```
+
+Nếu script bị ngắt hoặc báo lỗi, kiểm tra trạng thái VM trên Azure và `kubectl get nodes`; đảm bảo worker được bật lại trước khi tiếp tục.
+
+### Xem request đang đi qua worker nào
+
+Sau khi đăng nhập, dòng **“Request gần nhất”** hiển thị node frontend và backend của lần lấy trạng thái gần nhất, cập nhật khoảng 5 giây. Chẳng hạn, truy cập qua `cp.akaine.io.vn` vẫn có thể được Kubernetes chuyển tới Pod trên một trong hai worker. Đây là mẫu request, không phải thống kê toàn bộ tải.
+
+Trên control plane, xem log frontend có `frontend_node`, `frontend_pod`, trạng thái và thời gian request:
+
+```sh
+kubectl logs -n nhip -l app=nhip-frontend -c nginx --all-pods=true --tail=30 --max-log-requests=10 -f
+```
+
+Xem log backend `NHIP_ROUTE` có cả frontend và backend node/Pod tương ứng:
+
+```sh
+kubectl logs -n nhip -l app=nhip-backend -c app --all-pods=true --tail=30 --max-log-requests=10 -f
+```
+
+Nhấn `Ctrl+C` để dừng xem log. Khi worker bị tắt, `kubectl logs` tới Pod cũ trên node đó có thể timeout; xem Pod đang chạy bằng `kubectl get pods -n nhip -o wide` rồi dùng `kubectl logs -n nhip <ten-pod> -c nginx` hoặc `-c app` cho Pod còn sống. Dòng `upstream` trong log Nginx frontend là IP của Service backend; `backend_node` trong `NHIP_ROUTE` cho biết node backend thực sự trả lời.
 
 ## Kết quả kiểm tra ngày 12/11/2026
 
@@ -150,6 +182,8 @@ Trang đăng nhập hiển thị huy hiệu **Backend · v1/v2** từ `/version`
 | Scale | Backend đạt 4 replica: 2 trên mỗi worker; sau đó đưa về 2. |
 | Rollout/rollback | Với image trước khi thêm đăng ký, rollout `v2` trả phiên bản `v2`; đã rollback về `v1`. Một request ngay sau rollback trả 502, các request sau trả 200. Chưa xác định nguyên nhân 502. |
 | Tắt worker | `nhip-worker2` chuyển `NotReady`; 2 frontend và 2 backend được tạo trên `worker1`. Website qua node còn lại trả `/readyz` 200. Worker 2 sau đó được bật lại; Pod đã phân bố về cả hai worker. |
+| Tắt và phục hồi từng worker, 12/11/2026 | Đã thử tuần tự `worker1` và `worker2`. Khi một worker dừng, hai frontend và hai backend sẵn sàng trên worker còn lại; endpoint còn sống trả 200. Cả hai worker đã được bật lại và Pod phân bố lại. Lần đo worker1 khoảng 132 giây, worker2 khoảng 130 giây, tính từ yêu cầu dừng đến khi quan sát đủ replica. |
+| Theo dõi request | Giao diện hiển thị frontend/backend node gần nhất; `NHIP_ACCESS` và `NHIP_ROUTE` ghi node, Pod và trạng thái request. Quan sát 12 request thấy cả hai worker phục vụ frontend và backend. |
 
 Thời gian quan sát trong lần tắt worker khoảng **80 giây** đến khi các replica trên worker còn lại sẵn sàng; đây là một phép đo demo, không phải SLA. Lần khôi phục đầu gặp tình trạng lệnh bật được gửi trước khi Azure hoàn tất lệnh tắt; gửi lại lệnh bật sau khi tắt xong đã đưa worker trở về `Ready`.
 

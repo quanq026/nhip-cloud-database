@@ -23,3 +23,4 @@ deployment-state.json
 kubeconfig*
 *.kubeconfig
 *.parameters.json
+demo-result-*.json

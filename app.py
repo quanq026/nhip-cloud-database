@@ -133,7 +133,7 @@ def protect_api():
 
 @app.after_request
 def response_headers(response):
-    if request.path.startswith("/api/"):
+    if request.path.startswith("/api/") or request.path == "/version":
         response.headers["Cache-Control"] = "no-store"
     response.headers["X-Content-Type-Options"] = "nosniff"
     return response
@@ -241,6 +241,19 @@ def register():
 @app.get("/api/me")
 def me():
     return jsonify(user=g.user, csrf_token=session["csrf_token"])
+
+
+@app.get("/api/routing")
+def routing():
+    frontend_node = request.headers.get("X-Nhip-Frontend-Node", "không xác định")
+    frontend_pod = request.headers.get("X-Nhip-Frontend-Pod", "không xác định")
+    backend_node = os.environ.get("NODE_NAME", "không xác định")
+    backend_pod = os.environ.get("POD_NAME", "không xác định")
+    print(f"NHIP_ROUTE frontend_node={frontend_node} frontend_pod={frontend_pod} "
+          f"backend_node={backend_node} backend_pod={backend_pod}", flush=True)
+    return jsonify(frontend_node=frontend_node, frontend_pod=frontend_pod,
+                   backend_node=backend_node, backend_pod=backend_pod,
+                   version=os.environ.get("APP_VERSION", "v1"))
 
 
 @app.post("/api/logout")

@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#f8f8f5">
   <title>Nhịp · Công việc của tôi</title>
-  <link rel="stylesheet" href="/static/style.css?v=20261112-register">
-  <script src="/static/app.js?v=20261112-register" defer></script>
+  <link rel="stylesheet" href="/static/style.css?v=20261112-routing">
+  <script src="/static/app.js?v=20261112-routing" defer></script>
 </head>
 <body>
   <div id="boot" class="boot" role="status">Đang mở không gian làm việc…</div>
@@ -67,6 +67,7 @@
 
         <section class="tasks-section" aria-label="Danh sách công việc">
           <div class="list-toolbar"><div class="filters" role="group" aria-label="Lọc công việc"><button class="filter active" data-filter="all" aria-pressed="true" type="button">Tất cả <span id="count-all">0</span></button><button class="filter" data-filter="open" aria-pressed="false" type="button">Chưa xong <span id="count-open">0</span></button><button class="filter" data-filter="done" aria-pressed="false" type="button">Hoàn thành <span id="count-done">0</span></button><button class="filter" data-filter="overdue" aria-pressed="false" type="button">Quá hạn <span id="count-overdue">0</span></button></div><button id="refresh" class="icon-button" type="button" title="Tải lại công việc" aria-label="Tải lại công việc"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5"/><path d="M6 7a7 7 0 0 1 11.5-1L20 9M4 15l2.5 3A7 7 0 0 0 18 17"/></svg></button></div>
+          <p id="routing-status" class="routing-status" role="status">Đang cập nhật thông tin node…</p>
           <div id="app-error" class="error" role="alert" hidden></div>
           <form id="create-form" class="create-form" aria-label="Thêm công việc"><span class="create-plus" aria-hidden="true">+</span><label class="sr-only" for="new-title">Tên công việc mới</label><input id="new-title" name="title" type="text" placeholder="Bạn cần làm gì tiếp theo?" required maxlength="200" autocomplete="off"><label class="sr-only" for="new-date">Hạn hoàn thành, không bắt buộc</label><input id="new-date" name="due_date" type="date" title="Hạn hoàn thành (không bắt buộc)"><button id="create-submit" class="button create-button" type="submit">Thêm <span aria-hidden="true">↵</span></button></form>
           <div class="list-heading" aria-hidden="true"><span>CÔNG VIỆC</span><span>HẠN HOÀN THÀNH</span></div>

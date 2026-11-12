@@ -1,0 +1,31 @@
+{
+  "started_at_utc": "2026-11-12T05:55:46.368974+00:00",
+  "target": "nhip-worker1",
+  "resource_group": "rg-nhip-k8s",
+  "checks": {
+    "worker_became_not_ready": true,
+    "replicas_rescheduled_to_survivor": true,
+    "main_ready": true,
+    "surviving_hostname_ready": true,
+    "worker_start_requested": true,
+    "worker_ready_after_restart": true,
+    "distribution_restored": true
+  },
+  "observed_failover_seconds": 132.3,
+  "survivor_replicas": {
+    "nhip-frontend": 2,
+    "nhip-backend": 2
+  },
+  "final_distribution": {
+    "nhip-frontend": [
+      "nhip-worker1",
+      "nhip-worker2"
+    ],
+    "nhip-backend": [
+      "nhip-worker1",
+      "nhip-worker2"
+    ]
+  },
+  "failure": null,
+  "finished_at_utc": "2026-11-12T05:59:40.799616+00:00"
+}

@@ -41,7 +41,7 @@ kubectl rollout status deployment/nhip-backend -n nhip
 Mở trang đăng nhập tại một trong ba subdomain. Huy hiệu **Backend · v1/v2** hiển thị phiên bản backend trả lời request gần nhất; nó tự cập nhật khoảng 5 giây một lần khi trang đăng nhập đang mở.
 
 ```sh
-kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-register
+kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-routing
 kubectl rollout status deployment/nhip-backend -n nhip
 kubectl get pods -n nhip -l app=nhip-backend -o wide
 
@@ -55,7 +55,7 @@ kubectl rollout status deployment/nhip-backend -n nhip
 
 ## 5. Tắt một worker
 
-Chỉ dừng `nhip-worker2` trong resource group `rg-nhip-k8s`; VM đang phục vụ sẽ gián đoạn trong lúc thử. Không tắt control plane hoặc VM thuộc `RG-K8S`.
+Trong ví dụ dưới đây, chỉ dừng `nhip-worker2` trong resource group `rg-nhip-k8s`; VM đang phục vụ sẽ gián đoạn trong lúc thử. Chạy các lệnh `az` trên máy đã đăng nhập Azure CLI và `kubectl` trên control plane. Không tắt control plane hoặc VM thuộc `RG-K8S`.
 
 ```sh
 az vm stop --resource-group rg-nhip-k8s --name nhip-worker2
@@ -66,7 +66,18 @@ az vm start --resource-group rg-nhip-k8s --name nhip-worker2
 
 Chờ lệnh tắt hoàn tất trước khi bật lại. Sau khi node `Ready`, kiểm tra lại Pod; nếu cần phân bố lại, thực hiện `kubectl rollout restart` từng Deployment và chờ rollout hoàn tất.
 
-**Kết quả đã ghi nhận:** `worker2` chuyển `NotReady`; 2 frontend và 2 backend được tạo trên `worker1`; website qua node còn sống trả `/readyz` 200. Khoảng 80 giây là thời gian quan sát của một lần demo, không phải SLA. Địa chỉ riêng của worker bị tắt không phục vụ khi VM đó ngừng.
+**Kết quả đã ghi nhận:** Đã thử lần lượt cả `worker1` và `worker2`. Khi một worker `NotReady`, 2 frontend và 2 backend được tạo trên worker còn lại; website qua node còn sống trả `/readyz` 200. Cả hai worker đều được khởi động lại và Pod được phân bố lại. Lần đo gần nhất khoảng 132 giây khi tắt worker1 và 130 giây khi tắt worker2; đây không phải SLA. Địa chỉ riêng của worker bị tắt không phục vụ khi VM đó ngừng.
+
+Kết quả có thời gian và trạng thái từng bước: [worker1](minh-chung/worker1.json), [worker2](minh-chung/worker2.json).
+
+Có thể thực hiện từng kịch bản từ máy quản trị, chờ kịch bản đầu hoàn tất trước khi chạy kịch bản sau:
+
+```sh
+python infra/azure/demo-worker.py worker1
+python infra/azure/demo-worker.py worker2
+```
+
+Script yêu cầu Azure CLI đăng nhập đúng subscription và SSH key vào control plane. Kiểm tra VM và node thủ công nếu script bị gián đoạn.
 
 ## 6. Câu hỏi ngắn
 
@@ -77,6 +88,7 @@ Chờ lệnh tắt hoàn tất trước khi bật lại. Sau khi node `Ready`, k
 | Docker và containerd khác nhau ở đâu? | Docker build/push image; kubelet dùng containerd làm runtime để chạy container trên node. |
 | Vì sao cần Flannel? | Flannel là CNI tạo mạng cho Pod giao tiếp giữa các node. |
 | Vì sao có nhiều Nginx? | Nginx trên VM nhận HTTPS; Nginx frontend trong Pod phục vụ tệp tĩnh và chuyển API tới backend. |
+| CP chuyển request tới worker nào? | Sau đăng nhập, giao diện hiện node frontend và backend của request trạng thái gần nhất. `NHIP_ACCESS` và `NHIP_ROUTE` ghi thêm node/Pod. Kubernetes Service quyết định endpoint cho mỗi kết nối; số request mẫu không chứng minh tỉ lệ cân bằng tải. |
 | Hệ thống có HA hoàn chỉnh không? | Chưa. Có nhiều replica ứng dụng nhưng control plane, registry và từng hostname có điểm phụ thuộc riêng. |
 | Secret Kubernetes có phải mã hóa hoàn toàn? | Secret tránh đặt giá trị trực tiếp trong manifest, nhưng vẫn cần kiểm soát RBAC, etcd và quyền truy cập; không đưa secret lên Git. |
 | Nếu D1 hoặc kết nối Internet lỗi? | `/readyz` phụ thuộc D1 và có thể báo lỗi; Pod không xử lý request bình thường đến khi kết nối được phục hồi. |
@@ -84,4 +96,4 @@ Chờ lệnh tắt hoàn tất trước khi bật lại. Sau khi node `Ready`, k
 
 ## 7. Sau demo
 
-Đưa backend về 2 replica và image `v1-register`; xác nhận ba node `Ready`, mỗi Deployment `2/2`, dữ liệu D1 còn nguyên và website truy cập được. Lưu ảnh minh chứng, không chụp token, kubeconfig hoặc thông tin đăng nhập.
+Đưa backend về 2 replica và image `v1-routing`; xác nhận ba node `Ready`, mỗi Deployment `2/2`, dữ liệu D1 còn nguyên và website truy cập được. Lưu ảnh minh chứng, không chụp token, kubeconfig hoặc thông tin đăng nhập.

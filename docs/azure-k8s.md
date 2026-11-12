@@ -36,7 +36,7 @@ Trên control plane, từ thư mục source:
 sudo bash k8s/build-images.sh
 ```
 
-Script build và push frontend `v1-register`, D1 gateway `v1`, backend `v1-register` và `v2-register`. Không dùng tag `latest`. Registry nằm trong VNet, nên người ngoài không thể pull image trực tiếp; họ có thể build lại từ source.
+Script build và push frontend `v1-routing`, D1 gateway `v1`, backend `v1-routing` và `v2-routing`. Không dùng tag `latest`. Registry nằm trong VNet, nên người ngoài không thể pull image trực tiếp; họ có thể build lại từ source.
 
 ## Secret và triển khai
 
@@ -63,13 +63,15 @@ kubectl scale deployment/nhip-backend -n nhip --replicas=4
 kubectl get pods -n nhip -o wide
 kubectl scale deployment/nhip-backend -n nhip --replicas=2
 
-kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-register
+kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-routing
 kubectl rollout status deployment/nhip-backend -n nhip
 kubectl rollout undo deployment/nhip-backend -n nhip
 kubectl rollout status deployment/nhip-backend -n nhip
 ```
 
-Ngày 12/11/2026 đã thử tắt `nhip-worker2`: node chuyển `NotReady`, hai frontend và hai backend được tạo trên `nhip-worker1`, `/readyz` qua node còn lại trả 200. Sau đó đã bật lại worker và phân bố Pod về cả hai worker. Thời gian quan sát tới khi replica sẵn sàng khoảng 80 giây; đây là một lần đo demo. Khi làm lại, chờ Azure hoàn tất lệnh tắt trước khi gửi lệnh bật. Một hostname trỏ đến worker bị tắt sẽ không hoạt động, dù ứng dụng vẫn có thể phục vụ qua node còn lại.
+Ngày 12/11/2026 đã thử dừng lần lượt `nhip-worker1` và `nhip-worker2`: mỗi node chuyển `NotReady`, hai frontend và hai backend được tạo trên worker còn lại, `/readyz` qua node còn lại trả 200. Cả hai VM đã được bật lại và Pod được phân bố lại. Lần đo gần nhất tính từ yêu cầu dừng đến đủ replica: worker1 khoảng 132 giây, worker2 khoảng 130 giây; đây không phải SLA. Dùng `python infra/azure/demo-worker.py worker1` hoặc `worker2` từ máy quản trị để lặp lại; chờ từng kịch bản kết thúc trước khi chạy tiếp. Khi thao tác thủ công, chờ Azure hoàn tất lệnh tắt trước khi gửi lệnh bật. Hostname trỏ đến worker bị tắt không hoạt động, dù ứng dụng vẫn phục vụ qua node còn lại.
+
+Sau khi đăng nhập, giao diện hiển thị node frontend/backend của request trạng thái gần nhất. Log Nginx `NHIP_ACCESS` cho biết node/Pod frontend và Service upstream; log Flask `NHIP_ROUTE` cho biết cả node/Pod frontend và backend. Đây là mẫu của request cụ thể, không phải số liệu tổng tải. Endpoint trạng thái yêu cầu đăng nhập và được gọi định kỳ khoảng 5 giây, làm tăng số request tới D1 API.
 
 Đã thử scale backend lên bốn replica và rollout `v2` rồi rollback `v1`. Một request ngay sau rollback trả 502; các request sau trả 200. Chưa xác định nguyên nhân của 502, nên không kết luận rollout không gián đoạn.
 

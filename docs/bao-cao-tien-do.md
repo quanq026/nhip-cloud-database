@@ -12,7 +12,7 @@ Nhịp là ứng dụng quản lý công việc cá nhân: đăng ký, đăng nh
 
 Đã tạo ba VM riêng, khởi tạo cluster với ba node Ready, build và push image có tag phiên bản lên registry nội bộ, triển khai frontend/backend trong namespace `nhip`. Đã cấp HTTPS cho từng node và tạo bản backup D1 trên Azure.
 
-Trước khi bổ sung đăng ký, đã kiểm tra đăng nhập và đọc D1 qua ba subdomain; sáu kiểm thử API đạt. Đã thử scale backend lên bốn replica, rollout `v2` và rollback `v1`, tắt `worker2` và khôi phục cụm. Một request ngay sau rollback trả 502; các request sau trả 200, nguyên nhân chưa xác định.
+Trước khi bổ sung đăng ký, đã kiểm tra đăng nhập và đọc D1 qua ba subdomain; sáu kiểm thử API đạt. Đã thử scale backend lên bốn replica, rollout `v2` và rollback `v1`. Sau đó đã thử tắt và khôi phục lần lượt từng worker; Pod được tạo trên worker còn lại. Một request ngay sau lần rollback trước trả 502; các request sau trả 200, nguyên nhân chưa xác định.
 
 ## 4. Triển khai và minh chứng
 
@@ -20,6 +20,7 @@ Trước khi bổ sung đăng ký, đã kiểm tra đăng nhập và đọc D1 q
 - https://worker1.akaine.io.vn — worker 1.
 - https://worker2.akaine.io.vn — worker 2.
 - `kubectl get nodes` ghi nhận ba node Ready; `kubectl get pods -n nhip -o wide` ghi nhận hai replica frontend và hai replica backend phân bố trên cả hai worker.
+- Giao diện hiển thị node xử lý request gần nhất; log `NHIP_ACCESS` và `NHIP_ROUTE` hỗ trợ giải thích đường đi qua các Pod.
 
 Các subdomain đi vào node tương ứng, sau đó Kubernetes Service có thể chuyển request tới Pod trên worker khác.
 

@@ -28,11 +28,15 @@ spec:
         - {key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute, tolerationSeconds: 10}
       containers:
         - name: app
-          image: 10.44.1.10:5000/nhip-backend:v1-register
+          image: 10.44.1.10:5000/nhip-backend:v1-routing
           ports: [{containerPort: 8000}]
           env:
             - {name: PUBLIC_ORIGIN, value: "https://akaine.io.vn,https://cp.akaine.io.vn,https://worker1.akaine.io.vn,https://worker2.akaine.io.vn"}
             - {name: SECRET_KEY_FILE, value: /run/session/session_key}
+            - name: NODE_NAME
+              valueFrom: {fieldRef: {fieldPath: spec.nodeName}}
+            - name: POD_NAME
+              valueFrom: {fieldRef: {fieldPath: metadata.name}}
           resources:
             requests: {cpu: 50m, memory: 96Mi}
             limits: {memory: 384Mi}
