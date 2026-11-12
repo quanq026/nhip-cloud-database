@@ -2,7 +2,7 @@
 
 ## 1. Đề tài và chức năng
 
-Nhịp là ứng dụng quản lý công việc cá nhân: đăng nhập, thêm, xem, sửa, xóa, đánh dấu hoàn thành và lọc theo hạn. Dữ liệu của mỗi người được backend giới hạn theo tài khoản.
+Nhịp là ứng dụng quản lý công việc cá nhân: đăng ký, đăng nhập, thêm, xem, sửa, xóa, đánh dấu hoàn thành và lọc theo hạn. Dữ liệu của mỗi người được backend giới hạn theo tài khoản.
 
 ## 2. Kiến trúc
 
@@ -12,7 +12,7 @@ Nhịp là ứng dụng quản lý công việc cá nhân: đăng nhập, thêm,
 
 Đã tạo ba VM riêng, khởi tạo cluster với ba node Ready, build và push image có tag phiên bản lên registry nội bộ, triển khai frontend/backend trong namespace `nhip`. Đã cấp HTTPS cho từng node và tạo bản backup D1 trên Azure.
 
-Đã kiểm tra đăng nhập và đọc D1 qua ba subdomain; sáu kiểm thử API đạt. Đã thử scale backend lên bốn replica, rollout `v2` và rollback `v1`, tắt `worker2` và khôi phục cụm. Một request ngay sau rollback trả 502; các request sau trả 200, nguyên nhân chưa xác định.
+Trước khi bổ sung đăng ký, đã kiểm tra đăng nhập và đọc D1 qua ba subdomain; sáu kiểm thử API đạt. Đã thử scale backend lên bốn replica, rollout `v2` và rollback `v1`, tắt `worker2` và khôi phục cụm. Một request ngay sau rollback trả 502; các request sau trả 200, nguyên nhân chưa xác định.
 
 ## 4. Triển khai và minh chứng
 

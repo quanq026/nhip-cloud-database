@@ -22,6 +22,8 @@ kubectl get endpointslices -n nhip
 
 **Có thể bị hỏi:** D1 có nằm trong cluster? Không. D1 là dịch vụ database của Cloudflare; các Pod chạy trên Azure. Cách này đơn giản cho demo, nhưng phụ thuộc Internet và giới hạn Cloudflare API.
 
+**Có thể bị hỏi:** Đăng ký hoạt động thế nào? Người dùng nhập email và mật khẩu; backend kiểm tra dữ liệu, băm mật khẩu và tạo user trong D1. Bảng `users` có `UNIQUE` cho email để tránh trùng. Bản demo chưa có xác minh email hay khôi phục mật khẩu.
+
 ## 3. Scale backend
 
 ```sh
@@ -39,7 +41,7 @@ kubectl rollout status deployment/nhip-backend -n nhip
 Mở trang đăng nhập tại một trong ba subdomain. Huy hiệu **Backend · v1/v2** hiển thị phiên bản backend trả lời request gần nhất; nó tự cập nhật khoảng 5 giây một lần khi trang đăng nhập đang mở.
 
 ```sh
-kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-nodes
+kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-register
 kubectl rollout status deployment/nhip-backend -n nhip
 kubectl get pods -n nhip -l app=nhip-backend -o wide
 
@@ -82,4 +84,4 @@ Chờ lệnh tắt hoàn tất trước khi bật lại. Sau khi node `Ready`, k
 
 ## 7. Sau demo
 
-Đưa backend về 2 replica và image `v1-nodes`; xác nhận ba node `Ready`, mỗi Deployment `2/2`, dữ liệu D1 còn nguyên và website truy cập được. Lưu ảnh minh chứng, không chụp token, kubeconfig hoặc thông tin đăng nhập.
+Đưa backend về 2 replica và image `v1-register`; xác nhận ba node `Ready`, mỗi Deployment `2/2`, dữ liệu D1 còn nguyên và website truy cập được. Lưu ảnh minh chứng, không chụp token, kubeconfig hoặc thông tin đăng nhập.

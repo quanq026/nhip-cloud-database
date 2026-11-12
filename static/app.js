@@ -55,6 +55,9 @@ function showLogin() {
   for (const dialog of document.querySelectorAll("dialog[open]")) dialog.close();
   $("app-view").hidden = true;
   $("login-view").hidden = false;
+  $("login-form").hidden = false;
+  $("register-form").hidden = true;
+  $("register-form").reset();
   $("password").value = "";
   $("create-form").reset();
   $("edit-form").reset();
@@ -223,6 +226,7 @@ async function enterWorkspace(data) {
   $("login-view").hidden = true;
   $("app-view").hidden = false;
   $("password").value = "";
+  $("register-form").reset();
   document.title = "Nhịp · Công việc của tôi";
   $("today").textContent = new Intl.DateTimeFormat("vi-VN", { weekday: "long", day: "2-digit", month: "long", year: "numeric" }).format(new Date());
   await loadTasks();
@@ -241,6 +245,42 @@ $("login-form").addEventListener("submit", async (event) => {
   } catch (error) {
     showError("login-error", error.status === 401 ? new Error("Tên đăng nhập hoặc mật khẩu chưa đúng.") : error);
   } finally { $("login-submit").disabled = false; }
+});
+
+$("show-register").addEventListener("click", () => {
+  clearError("login-error");
+  clearError("register-error");
+  $("login-form").hidden = true;
+  $("register-form").hidden = false;
+  document.title = "Nhịp · Tạo tài khoản";
+  $("register-email").focus();
+});
+
+$("show-login").addEventListener("click", () => {
+  clearError("register-error");
+  $("register-form").reset();
+  $("register-form").hidden = true;
+  $("login-form").hidden = false;
+  document.title = "Nhịp · Đăng nhập";
+  $("email").focus();
+});
+
+$("register-form").addEventListener("submit", async (event) => {
+  event.preventDefault();
+  clearError("register-error");
+  if ($("register-password").value !== $("register-confirm").value) {
+    showError("register-error", new Error("Mật khẩu nhập lại chưa khớp."));
+    $("register-confirm").focus();
+    return;
+  }
+  $("register-submit").disabled = true;
+  try {
+    const data = await api("/api/register", { method: "POST", body: {
+      email: $("register-email").value.trim(), password: $("register-password").value
+    }});
+    await enterWorkspace(data);
+  } catch (error) { showError("register-error", error); }
+  finally { $("register-submit").disabled = false; }
 });
 
 $("logout").addEventListener("click", async () => {

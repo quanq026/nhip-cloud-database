@@ -5,8 +5,8 @@
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="theme-color" content="#f8f8f5">
   <title>Nhịp · Công việc của tôi</title>
-  <link rel="stylesheet" href="/static/style.css?v=20261112-version">
-  <script src="/static/app.js?v=20261112-version" defer></script>
+  <link rel="stylesheet" href="/static/style.css?v=20261112-register">
+  <script src="/static/app.js?v=20261112-register" defer></script>
 </head>
 <body>
   <div id="boot" class="boot" role="status">Đang mở không gian làm việc…</div>
@@ -30,7 +30,21 @@
         <label for="password">Mật khẩu</label>
         <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Nhập mật khẩu" required>
         <button id="login-submit" class="button primary" type="submit">Đăng nhập <span aria-hidden="true">↗</span></button>
-        <p class="login-note">Sử dụng tài khoản đã được cấp cho bạn.</p>
+        <p class="login-note">Chưa có tài khoản? <button id="show-register" class="auth-link" type="button">Đăng ký</button></p>
+      </form>
+      <form id="register-form" class="login-form" hidden>
+        <span class="eyebrow">BẮT ĐẦU CÙNG NHỊP</span>
+        <h2>Tạo tài khoản</h2>
+        <p class="muted">Tạo không gian làm việc của riêng bạn.</p>
+        <div id="register-error" class="error" role="alert" hidden></div>
+        <label for="register-email">Email</label>
+        <input id="register-email" type="email" autocomplete="email" placeholder="ban@example.com" required maxlength="254">
+        <label for="register-password">Mật khẩu</label>
+        <input id="register-password" type="password" autocomplete="new-password" placeholder="Tối thiểu 8 ký tự" required minlength="8" maxlength="1024">
+        <label for="register-confirm">Nhập lại mật khẩu</label>
+        <input id="register-confirm" type="password" autocomplete="new-password" placeholder="Nhập lại mật khẩu" required minlength="8" maxlength="1024">
+        <button id="register-submit" class="button primary" type="submit">Tạo tài khoản <span aria-hidden="true">↗</span></button>
+        <p class="login-note">Đã có tài khoản? <button id="show-login" class="auth-link" type="button">Đăng nhập</button></p>
       </form>
     </div>
   </section>

@@ -4,9 +4,11 @@ Nhịp là ứng dụng quản lý công việc cá nhân cho bài giữa kỳ C
 
 ## Chức năng
 
-- Đăng nhập bằng tài khoản đã cấp; mỗi người chỉ truy cập công việc của mình.
+- Đăng ký bằng email, đăng nhập; mỗi người chỉ truy cập công việc của mình.
 - Thêm, xem, sửa, xóa và đánh dấu hoàn thành công việc.
 - Đặt hạn và lọc theo trạng thái hoặc công việc quá hạn.
+
+Đăng ký dùng email và mật khẩu từ 8 ký tự; tài khoản được đăng nhập ngay sau khi tạo. Mật khẩu được băm trước khi lưu vào D1. Đây là bản demo, chưa có xác minh email hoặc chức năng khôi phục mật khẩu.
 
 ## Kiến trúc
 
@@ -33,6 +35,30 @@ Mỗi backend Pod có hai container: Flask và D1 gateway, giao tiếp qua Unix 
 | `nhip-worker2` | Worker | `10.44.1.12` | https://worker2.akaine.io.vn |
 
 Tên miền chính: https://akaine.io.vn. Mỗi subdomain trỏ vào node tương ứng; Kubernetes Service có thể chuyển request đến Pod ở worker khác. Các địa chỉ cùng sử dụng D1; cookie phiên gắn với từng hostname.
+
+## SSH vào từng VPS
+
+Chạy lệnh tương ứng trên máy của bạn. Khi hiện `password:`, nhập mật khẩu SSH đã được cấp; mật khẩu không hiển thị khi gõ.
+
+**Control plane:**
+
+```sh
+ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no azureuser@48.218.48.140
+```
+
+**Worker 1:**
+
+```sh
+ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no azureuser@74.176.68.41
+```
+
+**Worker 2:**
+
+```sh
+ssh -o PreferredAuthentications=password -o PubkeyAuthentication=no azureuser@48.218.52.218
+```
+
+SSH dùng IP public trực tiếp vì các subdomain website đang bật Cloudflare proxy. Cổng 22 chỉ mở cho IP quản trị đã cấu hình trong Azure NSG; khi đổi mạng, cần cập nhật quy tắc trước khi kết nối. Đăng nhập bằng SSH key vẫn được hỗ trợ.
 
 ## Công nghệ và tài nguyên
 
@@ -104,7 +130,7 @@ kubectl scale deployment/nhip-backend -n nhip --replicas=2
 kubectl rollout status deployment/nhip-backend -n nhip
 
 # Cập nhật backend từ v1 lên v2, rồi quay lại phiên bản trước.
-kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-nodes
+kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-register
 kubectl rollout status deployment/nhip-backend -n nhip
 kubectl rollout undo deployment/nhip-backend -n nhip
 kubectl rollout status deployment/nhip-backend -n nhip
@@ -122,7 +148,7 @@ Trang đăng nhập hiển thị huy hiệu **Backend · v1/v2** từ `/version`
 | Đăng nhập | Thành công trên cả ba subdomain; API danh sách công việc trả 200. |
 | Kiểm thử ứng dụng | 6 kiểm thử tích hợp đạt: đăng nhập, CRUD, phân quyền, Origin/CSRF, input và đăng xuất. |
 | Scale | Backend đạt 4 replica: 2 trên mỗi worker; sau đó đưa về 2. |
-| Rollout/rollback | Rollout `v2` trả phiên bản `v2`; đã rollback về `v1`. Một request ngay sau rollback trả 502, các request sau trả 200. Chưa xác định nguyên nhân 502. |
+| Rollout/rollback | Với image trước khi thêm đăng ký, rollout `v2` trả phiên bản `v2`; đã rollback về `v1`. Một request ngay sau rollback trả 502, các request sau trả 200. Chưa xác định nguyên nhân 502. |
 | Tắt worker | `nhip-worker2` chuyển `NotReady`; 2 frontend và 2 backend được tạo trên `worker1`. Website qua node còn lại trả `/readyz` 200. Worker 2 sau đó được bật lại; Pod đã phân bố về cả hai worker. |
 
 Thời gian quan sát trong lần tắt worker khoảng **80 giây** đến khi các replica trên worker còn lại sẵn sàng; đây là một phép đo demo, không phải SLA. Lần khôi phục đầu gặp tình trạng lệnh bật được gửi trước khi Azure hoàn tất lệnh tắt; gửi lại lệnh bật sau khi tắt xong đã đưa worker trở về `Ready`.

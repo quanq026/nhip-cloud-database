@@ -1,6 +1,7 @@
 import http.client
 import json
 import os
+import re
 import secrets
 import socket
 from datetime import date, timedelta
@@ -112,7 +113,7 @@ def protect_api():
     if request.method in {"POST", "PATCH", "DELETE"}:
         if request.headers.get("Origin") not in PUBLIC_ORIGINS:
             return error("Nguồn yêu cầu không hợp lệ.", 403)
-    if request.path == "/api/login":
+    if request.path in {"/api/login", "/api/register"}:
         return None
     user_id = session.get("user_id")
     if type(user_id) is not int:
@@ -194,6 +195,10 @@ def login():
     valid = check_password_hash(user["password_hash"] if user else DUMMY_HASH, password)
     if not user or not valid:
         return error("Email hoặc mật khẩu chưa đúng.", 401)
+    return start_session(user)
+
+
+def start_session(user):
     session.clear()
     session.permanent = True
     session["user_id"] = user["id"]
@@ -202,6 +207,35 @@ def login():
         user={"id": user["id"], "email": user["email"]},
         csrf_token=session["csrf_token"],
     )
+
+
+@app.post("/api/register")
+def register():
+    payload = request.get_json(silent=True)
+    if not isinstance(payload, dict):
+        return error("Thông tin đăng ký không hợp lệ.", 400)
+    email = payload.get("email")
+    password = payload.get("password")
+    if not isinstance(email, str) or not isinstance(password, str):
+        return error("Thông tin đăng ký không hợp lệ.", 400)
+    email = email.strip().lower()
+    if len(email) > 254 or not re.fullmatch(r"[^\s@\x00-\x1f]+@[^\s@\x00-\x1f]+\.[^\s@\x00-\x1f]+", email):
+        return error("Email không hợp lệ.", 400)
+    try:
+        password_size = len(password.encode("utf-8"))
+    except UnicodeEncodeError:
+        return error("Mật khẩu không hợp lệ.", 400)
+    if not 8 <= len(password) <= 1024 or password_size > 1024 or "\x00" in password:
+        return error("Mật khẩu cần từ 8 ký tự và tối đa 1024 byte.", 400)
+    rows = d1_query(
+        "INSERT INTO users (email, password_hash) VALUES (?, ?) ON CONFLICT(email) DO NOTHING RETURNING id, email",
+        (email, generate_password_hash(password)),
+    )
+    if not rows:
+        return error("Email này đã được sử dụng.", 409)
+    response = start_session(rows[0])
+    response.status_code = 201
+    return response
 
 
 @app.get("/api/me")

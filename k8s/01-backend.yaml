@@ -28,7 +28,7 @@ spec:
         - {key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute, tolerationSeconds: 10}
       containers:
         - name: app
-          image: 10.44.1.10:5000/nhip-backend:v1-nodes
+          image: 10.44.1.10:5000/nhip-backend:v1-register
           ports: [{containerPort: 8000}]
           env:
             - {name: PUBLIC_ORIGIN, value: "https://akaine.io.vn,https://cp.akaine.io.vn,https://worker1.akaine.io.vn,https://worker2.akaine.io.vn"}

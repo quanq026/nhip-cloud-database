@@ -10,6 +10,8 @@
 
 Resource group `rg-nhip-k8s`, region Japan East. Mỗi VM dùng `Standard_B2als_v2`: 2 vCPU, 4 GiB RAM, ổ Standard SSD 32 GB. Cụm `RG-K8S` ở East Asia là tài nguyên khác. SSH và NodePort 30080 chỉ được phép từ IP quản trị tại thời điểm tạo; HTTPS 443 và HTTP 80 được mở để truy cập website/cấp chứng chỉ.
 
+Tài khoản SSH trên ba VM là `azureuser`, hỗ trợ mật khẩu và SSH key. Các lệnh SSH theo từng máy được liệt kê trong [README](../README.md#ssh-vào-từng-vps). Cấu hình password login là thay đổi thực hiện sau khi tạo VM; template Azure vẫn tạo VM với SSH key và không chứa mật khẩu.
+
 Kubernetes `v1.35.10`, containerd `2.2.1`, Flannel `v0.28.10`; Pod CIDR `10.244.0.0/16`. Namespace ứng dụng là `nhip`. `nhip-frontend` và `nhip-backend` đều có hai replica; mỗi backend Pod gồm Flask và D1 gateway dùng chung Unix socket.
 
 ## Chuẩn bị cluster
@@ -34,7 +36,7 @@ Trên control plane, từ thư mục source:
 sudo bash k8s/build-images.sh
 ```
 
-Script build và push frontend `v1-version`, D1 gateway `v1`, backend `v1-nodes` và `v2-nodes`. Không dùng tag `latest`. Registry nằm trong VNet, nên người ngoài không thể pull image trực tiếp; họ có thể build lại từ source.
+Script build và push frontend `v1-register`, D1 gateway `v1`, backend `v1-register` và `v2-register`. Không dùng tag `latest`. Registry nằm trong VNet, nên người ngoài không thể pull image trực tiếp; họ có thể build lại từ source.
 
 ## Secret và triển khai
 
@@ -61,7 +63,7 @@ kubectl scale deployment/nhip-backend -n nhip --replicas=4
 kubectl get pods -n nhip -o wide
 kubectl scale deployment/nhip-backend -n nhip --replicas=2
 
-kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-nodes
+kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-register
 kubectl rollout status deployment/nhip-backend -n nhip
 kubectl rollout undo deployment/nhip-backend -n nhip
 kubectl rollout status deployment/nhip-backend -n nhip
