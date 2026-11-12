@@ -28,7 +28,7 @@ spec:
         - {key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute, tolerationSeconds: 10}
       containers:
         - name: nginx
-          image: 10.44.1.10:5000/nhip-frontend:v1
+          image: 10.44.1.10:5000/nhip-frontend:v1-version
           ports: [{containerPort: 8080}]
           resources:
             requests: {cpu: 25m, memory: 32Mi}

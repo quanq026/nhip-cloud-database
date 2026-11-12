@@ -54,6 +54,7 @@ Tên miền chính: https://akaine.io.vn. Mỗi subdomain trỏ vào node tươn
 | `infra/azure/` | Template Azure và script chuẩn bị node |
 | `backup-d1.py` | Xuất backup D1 |
 | `docs/azure-k8s.md` | Hướng dẫn hạ tầng, triển khai và vận hành chi tiết |
+| `docs/kich-ban-bao-ve.md` | Kịch bản demo và câu hỏi bảo vệ |
 | `docs/bao-cao-tien-do.md` | Tóm tắt tiến độ giữa kỳ |
 
 ## Xem trạng thái cụm
@@ -109,7 +110,7 @@ kubectl rollout undo deployment/nhip-backend -n nhip
 kubectl rollout status deployment/nhip-backend -n nhip
 ```
 
-Kiểm tra `/version` sau mỗi bước. `v2` là image demo có dấu phiên bản khác để trình bày rollout, không phải một tính năng mới.
+Trang đăng nhập hiển thị huy hiệu **Backend · v1/v2** từ `/version`, tự cập nhật khoảng 5 giây. Trong lúc rollout có thể có cả Pod v1 và v2; huy hiệu thể hiện Pod trả lời request gần nhất. `v2` là image demo có dấu phiên bản khác, không phải một tính năng mới. Xem [kịch bản và câu hỏi bảo vệ](docs/kich-ban-bao-ve.md).
 
 Để trình bày mất node, dừng **đúng `nhip-worker2` trong `rg-nhip-k8s`**, quan sát node `NotReady` và các Pod được tạo lại trên worker còn sống, sau đó khởi động lại VM. Chờ thao tác tắt hoàn tất trước khi gửi lệnh bật. Khi cả ba node đã `Ready`, có thể `kubectl rollout restart` từng deployment để phân bố lại Pod. Hostname của worker bị tắt không thể phục vụ; truy cập qua node còn hoạt động.
 

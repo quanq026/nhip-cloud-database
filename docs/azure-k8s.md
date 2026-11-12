@@ -34,7 +34,7 @@ Trên control plane, từ thư mục source:
 sudo bash k8s/build-images.sh
 ```
 
-Script build và push frontend `v1`, D1 gateway `v1`, backend `v1-nodes` và `v2-nodes`. Không dùng tag `latest`. Registry nằm trong VNet, nên người ngoài không thể pull image trực tiếp; họ có thể build lại từ source.
+Script build và push frontend `v1-version`, D1 gateway `v1`, backend `v1-nodes` và `v2-nodes`. Không dùng tag `latest`. Registry nằm trong VNet, nên người ngoài không thể pull image trực tiếp; họ có thể build lại từ source.
 
 ## Secret và triển khai
 

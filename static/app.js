@@ -32,6 +32,21 @@ function showError(id, error) {
 function clearError(id) { $(id).hidden = true; $(id).textContent = ""; }
 function announce(message) { $("announcement").textContent = message; }
 
+async function updateBackendVersion() {
+  if (!$("login-view").hidden && !document.hidden) {
+    try {
+      const response = await fetch(`/version?t=${Date.now()}`, { cache: "no-store" });
+      if (!response.ok) throw new Error("Version unavailable");
+      const data = await response.json();
+      const version = /^v[0-9]+$/.test(data.version) ? data.version : null;
+      $("backend-version").textContent = version ? `Backend · ${version}` : "Backend · Không xác định";
+    } catch {
+      $("backend-version").textContent = "Backend · Không kết nối";
+    }
+  }
+  setTimeout(updateBackendVersion, 5000);
+}
+
 function showLogin() {
   state.user = null;
   state.csrf = "";
@@ -303,5 +318,5 @@ for (const button of document.querySelectorAll("[data-close]")) button.addEventL
   catch (error) {
     showLogin();
     if (error.status !== 401) showError("login-error", error);
-  } finally { $("boot").hidden = true; }
+  } finally { $("boot").hidden = true; updateBackendVersion(); }
 })();
