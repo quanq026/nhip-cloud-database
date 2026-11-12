@@ -19,7 +19,7 @@ spec:
         fsGroup: 101
       initContainers:
         - name: nginx-config
-          image: 10.44.1.10:5000/nhip-frontend:v1-routing
+          image: docker.io/quanq026/nhip-k8s-frontend:v1
           command: ["/bin/sh", "-c"]
           args:
             - 'sed -e "s/__NODE_NAME__/$NODE_NAME/g" -e "s/__POD_NAME__/$POD_NAME/g" /etc/nginx/nginx.conf > /generated/nginx.conf'
@@ -47,7 +47,7 @@ spec:
         - {key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute, tolerationSeconds: 10}
       containers:
         - name: nginx
-          image: 10.44.1.10:5000/nhip-frontend:v1-routing
+          image: docker.io/quanq026/nhip-k8s-frontend:v1
           ports: [{containerPort: 8080}]
           resources:
             requests: {cpu: 25m, memory: 32Mi}

@@ -28,7 +28,7 @@ spec:
         - {key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute, tolerationSeconds: 10}
       containers:
         - name: app
-          image: 10.44.1.10:5000/nhip-backend:v1-routing
+          image: docker.io/quanq026/nhip-k8s-backend:v1
           ports: [{containerPort: 8000}]
           env:
             - {name: PUBLIC_ORIGIN, value: "https://akaine.io.vn,https://cp.akaine.io.vn,https://worker1.akaine.io.vn,https://worker2.akaine.io.vn"}
@@ -61,7 +61,7 @@ spec:
             - {name: session, mountPath: /run/session, readOnly: true}
             - {name: app-tmp, mountPath: /tmp}
         - name: d1-gateway
-          image: 10.44.1.10:5000/nhip-d1-gateway:v1
+          image: docker.io/quanq026/nhip-k8s-d1-gateway:v1
           env:
             - {name: D1_ACCOUNT_ID, value: c6ababb4c45c2abec4bf14b84340a2d4}
             - {name: D1_DATABASE_ID, value: eb4b1d10-e6c2-4b83-a861-0fb04bb1747d}

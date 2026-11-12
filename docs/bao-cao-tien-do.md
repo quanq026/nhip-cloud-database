@@ -10,7 +10,7 @@ Nhịp là ứng dụng quản lý công việc cá nhân: đăng ký, đăng nh
 
 ## 3. Tiến độ
 
-Đã tạo ba VM riêng, khởi tạo cluster với ba node Ready, build và push image có tag phiên bản lên registry nội bộ, triển khai frontend/backend trong namespace `nhip`. Đã cấp HTTPS cho từng node và tạo bản backup D1 trên Azure.
+Đã tạo ba VM riêng, khởi tạo cluster với ba node Ready, build và push image có tag phiên bản lên Docker Hub public, triển khai frontend/backend trong namespace `nhip`. Đã cấp HTTPS cho từng node và tạo bản backup D1 trên Azure.
 
 Trước khi bổ sung đăng ký, đã kiểm tra đăng nhập và đọc D1 qua ba subdomain; sáu kiểm thử API đạt. Đã thử scale backend lên bốn replica, rollout `v2` và rollback `v1`. Sau đó đã thử tắt và khôi phục lần lượt từng worker; Pod được tạo trên worker còn lại. Một request ngay sau lần rollback trước trả 502; các request sau trả 200, nguyên nhân chưa xác định.
 
@@ -27,7 +27,7 @@ Các subdomain đi vào node tương ứng, sau đó Kubernetes Service có th�
 ## 5. Khó khăn
 
 - East Asia đã hết hạn mức vCPU và IP public: chọn Japan East cho cụm riêng.
-- Worker chưa tin chứng chỉ registry nội bộ: cấu hình CA cho containerd trên hai worker.
+- Worker ban đầu chưa tin chứng chỉ registry nội bộ: đã cấu hình CA; sau đó chuyển các image ứng dụng sang Docker Hub public.
 - D1 sử dụng SQLite và REST API: giữ gateway nội bộ để backend truy cập qua HTTPS.
 
 ## 6. Phân công và việc tiếp theo

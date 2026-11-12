@@ -30,7 +30,7 @@ Mỗi backend Pod có hai container: Flask và D1 gateway, giao tiếp qua Unix 
 
 | Node | Vai trò | IP nội bộ | HTTPS |
 |---|---|---|---|
-| `nhip-cp` | Control plane và registry | `10.44.1.10` | https://cp.akaine.io.vn |
+| `nhip-cp` | Control plane | `10.44.1.10` | https://cp.akaine.io.vn |
 | `nhip-worker1` | Worker | `10.44.1.11` | https://worker1.akaine.io.vn |
 | `nhip-worker2` | Worker | `10.44.1.12` | https://worker2.akaine.io.vn |
 
@@ -65,7 +65,7 @@ SSH dùng IP public trực tiếp vì các subdomain website đang bật Cloudfl
 - Azure Japan East, resource group `rg-nhip-k8s`: ba VM `Standard_B2als_v2`, mỗi VM 2 vCPU, 4 GiB RAM và SSD 32 GB.
 - Kubernetes `v1.35.10` cài bằng `kubeadm`, containerd `2.2.1` và Flannel `v0.28.10`.
 - Namespace `nhip`: hai replica frontend và hai replica backend, phân bố trên hai worker khi cụm hoạt động bình thường.
-- Docker build image; registry HTTPS `10.44.1.10:5000` nằm trong VNet và lưu các tag `v1`/`v2` của bài demo. Registry phụ thuộc control plane.
+- Docker build image và đẩy lên **Docker Hub public** với tag phiên bản `v1`/`v2`. Các Pod tải image từ Docker Hub.
 - Nginx trên từng VM kết thúc HTTPS, chuyển request vào NodePort; Cloudflare proxy và Full (strict) được bật cho từng subdomain.
 
 ## Cấu trúc source
@@ -100,9 +100,21 @@ Kỳ vọng: ba node `Ready`; `nhip-frontend` và `nhip-backend` đều `2/2`; m
 Trên control plane, từ thư mục source đã chuẩn bị:
 
 ```sh
+sudo install -d -m 700 /opt/nhip-dockerhub
+sudo docker --config /opt/nhip-dockerhub login
 sudo bash k8s/build-images.sh
 kubectl apply -f k8s/00-namespace.yaml
 ```
+
+Đăng nhập Docker Hub bằng tài khoản `quanq026` để push. Script dùng thư mục cấu hình root-only `/opt/nhip-dockerhub`; Docker Hub có thể lưu thông tin đăng nhập trong file cấu hình nếu không có credential helper. Chạy `sudo docker --config /opt/nhip-dockerhub logout` khi không cần push nữa. Các image đã public nên node Kubernetes không cần Docker Hub login để pull.
+
+| Image | Tag |
+|---|---|
+| [`quanq026/nhip-k8s-backend`](https://hub.docker.com/r/quanq026/nhip-k8s-backend) | `v1`, `v2` |
+| [`quanq026/nhip-k8s-frontend`](https://hub.docker.com/r/quanq026/nhip-k8s-frontend) | `v1` |
+| [`quanq026/nhip-k8s-d1-gateway`](https://hub.docker.com/r/quanq026/nhip-k8s-d1-gateway) | `v1` |
+
+Image public có thể được bất kỳ ai pull và đọc nội dung. Source GitHub vẫn private; không đưa secret hoặc dữ liệu vào image.
 
 Trước lần triển khai đầu, tạo Secret từ **các file riêng trên máy quản trị**. Không đưa giá trị token hay session key vào Git hoặc ảnh chụp. Nếu Secret đã tồn tại, không chạy lại lệnh `create` để ghi đè ngoài ý muốn.
 
@@ -130,7 +142,7 @@ kubectl scale deployment/nhip-backend -n nhip --replicas=2
 kubectl rollout status deployment/nhip-backend -n nhip
 
 # Cập nhật backend từ v1 lên v2, rồi quay lại phiên bản trước.
-kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-routing
+kubectl set image deployment/nhip-backend -n nhip app=docker.io/quanq026/nhip-k8s-backend:v2
 kubectl rollout status deployment/nhip-backend -n nhip
 kubectl rollout undo deployment/nhip-backend -n nhip
 kubectl rollout status deployment/nhip-backend -n nhip

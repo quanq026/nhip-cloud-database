@@ -41,7 +41,7 @@ kubectl rollout status deployment/nhip-backend -n nhip
 Mở trang đăng nhập tại một trong ba subdomain. Huy hiệu **Backend · v1/v2** hiển thị phiên bản backend trả lời request gần nhất; nó tự cập nhật khoảng 5 giây một lần khi trang đăng nhập đang mở.
 
 ```sh
-kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-routing
+kubectl set image deployment/nhip-backend -n nhip app=docker.io/quanq026/nhip-k8s-backend:v2
 kubectl rollout status deployment/nhip-backend -n nhip
 kubectl get pods -n nhip -l app=nhip-backend -o wide
 
@@ -89,11 +89,11 @@ Script yêu cầu Azure CLI đăng nhập đúng subscription và SSH key vào c
 | Vì sao cần Flannel? | Flannel là CNI tạo mạng cho Pod giao tiếp giữa các node. |
 | Vì sao có nhiều Nginx? | Nginx trên VM nhận HTTPS; Nginx frontend trong Pod phục vụ tệp tĩnh và chuyển API tới backend. |
 | CP chuyển request tới worker nào? | Sau đăng nhập, giao diện hiện node frontend và backend của request trạng thái gần nhất. `NHIP_ACCESS` và `NHIP_ROUTE` ghi thêm node/Pod. Kubernetes Service quyết định endpoint cho mỗi kết nối; số request mẫu không chứng minh tỉ lệ cân bằng tải. |
-| Hệ thống có HA hoàn chỉnh không? | Chưa. Có nhiều replica ứng dụng nhưng control plane, registry và từng hostname có điểm phụ thuộc riêng. |
+| Hệ thống có HA hoàn chỉnh không? | Chưa. Có nhiều replica ứng dụng nhưng control plane và từng hostname vẫn có điểm phụ thuộc riêng; việc pull image phụ thuộc Docker Hub. |
 | Secret Kubernetes có phải mã hóa hoàn toàn? | Secret tránh đặt giá trị trực tiếp trong manifest, nhưng vẫn cần kiểm soát RBAC, etcd và quyền truy cập; không đưa secret lên Git. |
 | Nếu D1 hoặc kết nối Internet lỗi? | `/readyz` phụ thuộc D1 và có thể báo lỗi; Pod không xử lý request bình thường đến khi kết nối được phục hồi. |
 | Nếu tắt VM Azure có còn phí? | Có thể còn phí ổ đĩa và IP; dừng trong OS cũng không đồng nghĩa deallocate. Kiểm tra trạng thái VM và Billing. |
 
 ## 7. Sau demo
 
-Đưa backend về 2 replica và image `v1-routing`; xác nhận ba node `Ready`, mỗi Deployment `2/2`, dữ liệu D1 còn nguyên và website truy cập được. Lưu ảnh minh chứng, không chụp token, kubeconfig hoặc thông tin đăng nhập.
+Đưa backend về 2 replica và image `docker.io/quanq026/nhip-k8s-backend:v1`; xác nhận ba node `Ready`, mỗi Deployment `2/2`, dữ liệu D1 còn nguyên và website truy cập được. Lưu ảnh minh chứng, không chụp token, kubeconfig hoặc thông tin đăng nhập.

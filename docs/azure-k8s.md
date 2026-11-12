@@ -4,7 +4,7 @@
 
 | VM | Vai trò | IP nội bộ | IP public | HTTPS |
 |---|---|---|---|---|
-| `nhip-cp` | Control plane, registry | `10.44.1.10` | `48.218.48.140` | `cp.akaine.io.vn` |
+| `nhip-cp` | Control plane | `10.44.1.10` | `48.218.48.140` | `cp.akaine.io.vn` |
 | `nhip-worker1` | Worker | `10.44.1.11` | `74.176.68.41` | `worker1.akaine.io.vn` |
 | `nhip-worker2` | Worker | `10.44.1.12` | `48.218.52.218` | `worker2.akaine.io.vn` |
 
@@ -28,15 +28,17 @@ Tạo lệnh join có thời hạn ngắn trên control plane và chạy trên t
 
 ## Registry và image
 
-Registry `10.44.1.10:5000` chạy trên control plane, chỉ bind IP riêng trong VNet, dùng TLS với CA riêng. `setup-registry.sh` tạo registry; sao chép **chứng chỉ CA công khai**, không sao chép private key, rồi chạy `configure-registry-trust.sh` trên worker. Registry này phục vụ demo và phụ thuộc control plane; không phải registry HA.
+Image của bài hiện nằm trên Docker Hub public dưới namespace `quanq026`. Node Kubernetes có thể pull không cần đăng nhập. Registry nội bộ `10.44.1.10:5000` được giữ tạm để rollback các revision cũ; script `setup-registry.sh` và `configure-registry-trust.sh` là tài liệu của cấu hình trước đó, không cần để dùng Docker Hub.
 
 Trên control plane, từ thư mục source:
 
 ```sh
+sudo install -d -m 700 /opt/nhip-dockerhub
+sudo docker --config /opt/nhip-dockerhub login
 sudo bash k8s/build-images.sh
 ```
 
-Script build và push frontend `v1-routing`, D1 gateway `v1`, backend `v1-routing` và `v2-routing`. Không dùng tag `latest`. Registry nằm trong VNet, nên người ngoài không thể pull image trực tiếp; họ có thể build lại từ source.
+Script build và push `quanq026/nhip-k8s-frontend:v1`, `quanq026/nhip-k8s-d1-gateway:v1`, `quanq026/nhip-k8s-backend:v1` và `:v2`. Không dùng tag `latest`. Các repository image là public theo yêu cầu; nội dung image có thể được tải và kiểm tra công khai.
 
 ## Secret và triển khai
 
@@ -63,7 +65,7 @@ kubectl scale deployment/nhip-backend -n nhip --replicas=4
 kubectl get pods -n nhip -o wide
 kubectl scale deployment/nhip-backend -n nhip --replicas=2
 
-kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-routing
+kubectl set image deployment/nhip-backend -n nhip app=docker.io/quanq026/nhip-k8s-backend:v2
 kubectl rollout status deployment/nhip-backend -n nhip
 kubectl rollout undo deployment/nhip-backend -n nhip
 kubectl rollout status deployment/nhip-backend -n nhip
