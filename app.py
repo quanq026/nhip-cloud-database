@@ -58,7 +58,7 @@ app.config.update(
     SESSION_COOKIE_SAMESITE="Lax",
     PERMANENT_SESSION_LIFETIME=timedelta(hours=8),
 )
-PUBLIC_ORIGIN = os.environ["PUBLIC_ORIGIN"].rstrip("/")
+PUBLIC_ORIGINS = {origin.strip().rstrip("/") for origin in os.environ["PUBLIC_ORIGIN"].split(",") if origin.strip()}
 DUMMY_HASH = generate_password_hash(secrets.token_urlsafe(32))
 TASK_COLUMNS = "id, title, done, due_date, created_at"
 
@@ -110,7 +110,7 @@ def protect_api():
     if not request.path.startswith("/api/"):
         return None
     if request.method in {"POST", "PATCH", "DELETE"}:
-        if request.headers.get("Origin") != PUBLIC_ORIGIN:
+        if request.headers.get("Origin") not in PUBLIC_ORIGINS:
             return error("Nguồn yêu cầu không hợp lệ.", 403)
     if request.path == "/api/login":
         return None
@@ -158,6 +158,11 @@ def index():
 @app.get("/healthz")
 def health():
     return jsonify(status="ok")
+
+
+@app.get("/version")
+def version():
+    return jsonify(version=os.environ.get("APP_VERSION", "v1"))
 
 
 @app.get("/readyz")

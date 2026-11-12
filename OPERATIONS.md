@@ -1,4 +1,6 @@
-# Nhịp: Nginx, Cloudflare và D1
+# Nhịp: cấu hình VPS FPT trước khi chuyển sang Azure
+
+**Tài liệu lịch sử ngày 05/11/2026.** Kiến trúc hiện tại dùng ba VM Azure và Kubernetes; xem `docs/azure-k8s.md`.
 
 Cập nhật ngày 05/11/2026. Ứng dụng: https://akaine.io.vn
 

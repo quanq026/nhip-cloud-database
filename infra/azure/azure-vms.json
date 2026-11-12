@@ -1,0 +1,136 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "sshPublicKey": {"type": "string"},
+    "sshSourceIp": {"type": "string"}
+  },
+  "variables": {
+    "vmNames": ["nhip-cp", "nhip-worker1", "nhip-worker2"],
+    "privateIps": ["10.44.1.10", "10.44.1.11", "10.44.1.12"],
+    "vmSize": "Standard_B2als_v2",
+    "adminUser": "azureuser"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/networkSecurityGroups",
+      "apiVersion": "2023-09-01",
+      "name": "nsg-nhip-k8s",
+      "location": "[resourceGroup().location]",
+      "tags": {"project": "nhip-k8s"},
+      "properties": {
+        "securityRules": [
+          {
+            "name": "ssh-admin",
+            "properties": {
+              "priority": 1000,
+              "direction": "Inbound",
+              "access": "Allow",
+              "protocol": "Tcp",
+              "sourceAddressPrefix": "[parameters('sshSourceIp')]",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "22"
+            }
+          },
+          {
+            "name": "web-demo",
+            "properties": {
+              "priority": 1010,
+              "direction": "Inbound",
+              "access": "Allow",
+              "protocol": "Tcp",
+              "sourceAddressPrefix": "*",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRanges": ["80", "443"]
+            }
+          },
+          {
+            "name": "nodeport-admin",
+            "properties": {
+              "priority": 1020,
+              "direction": "Inbound",
+              "access": "Allow",
+              "protocol": "Tcp",
+              "sourceAddressPrefix": "[parameters('sshSourceIp')]",
+              "sourcePortRange": "*",
+              "destinationAddressPrefix": "*",
+              "destinationPortRange": "30080"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "type": "Microsoft.Network/virtualNetworks",
+      "apiVersion": "2023-09-01",
+      "name": "vnet-nhip-k8s",
+      "location": "[resourceGroup().location]",
+      "tags": {"project": "nhip-k8s"},
+      "dependsOn": ["[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-nhip-k8s')]"],
+      "properties": {
+        "addressSpace": {"addressPrefixes": ["10.44.0.0/16"]},
+        "subnets": [{"name": "nodes", "properties": {
+          "addressPrefix": "10.44.1.0/24",
+          "networkSecurityGroup": {"id": "[resourceId('Microsoft.Network/networkSecurityGroups', 'nsg-nhip-k8s')]"}
+        }}]
+      }
+    },
+    {
+      "type": "Microsoft.Network/publicIPAddresses",
+      "apiVersion": "2023-09-01",
+      "name": "[format('pip-{0}', variables('vmNames')[copyIndex()])]",
+      "location": "[resourceGroup().location]",
+      "copy": {"name": "publicIpLoop", "count": 3},
+      "tags": {"project": "nhip-k8s"},
+      "sku": {"name": "Standard"},
+      "properties": {"publicIPAllocationMethod": "Static", "publicIPAddressVersion": "IPv4"}
+    },
+    {
+      "type": "Microsoft.Network/networkInterfaces",
+      "apiVersion": "2023-09-01",
+      "name": "[format('nic-{0}', variables('vmNames')[copyIndex()])]",
+      "location": "[resourceGroup().location]",
+      "copy": {"name": "nicLoop", "count": 3},
+      "tags": {"project": "nhip-k8s"},
+      "dependsOn": [
+        "[resourceId('Microsoft.Network/virtualNetworks', 'vnet-nhip-k8s')]",
+        "[resourceId('Microsoft.Network/publicIPAddresses', format('pip-{0}', variables('vmNames')[copyIndex()]))]"
+      ],
+      "properties": {
+        "ipConfigurations": [{"name": "ipconfig1", "properties": {
+          "privateIPAllocationMethod": "Static",
+          "privateIPAddress": "[variables('privateIps')[copyIndex()]]",
+          "subnet": {"id": "[resourceId('Microsoft.Network/virtualNetworks/subnets', 'vnet-nhip-k8s', 'nodes')]"},
+          "publicIPAddress": {"id": "[resourceId('Microsoft.Network/publicIPAddresses', format('pip-{0}', variables('vmNames')[copyIndex()]))]"}
+        }}]
+      }
+    },
+    {
+      "type": "Microsoft.Compute/virtualMachines",
+      "apiVersion": "2024-07-01",
+      "name": "[variables('vmNames')[copyIndex()]]",
+      "location": "[resourceGroup().location]",
+      "copy": {"name": "vmLoop", "count": 3},
+      "tags": {"project": "nhip-k8s"},
+      "dependsOn": ["[resourceId('Microsoft.Network/networkInterfaces', format('nic-{0}', variables('vmNames')[copyIndex()]))]"],
+      "properties": {
+        "hardwareProfile": {"vmSize": "[variables('vmSize')]"},
+        "osProfile": {
+          "computerName": "[variables('vmNames')[copyIndex()]]",
+          "adminUsername": "[variables('adminUser')]",
+          "linuxConfiguration": {
+            "disablePasswordAuthentication": true,
+            "ssh": {"publicKeys": [{"path": "[format('/home/{0}/.ssh/authorized_keys', variables('adminUser'))]", "keyData": "[parameters('sshPublicKey')]"}]}
+          }
+        },
+        "storageProfile": {
+          "imageReference": {"publisher": "Canonical", "offer": "ubuntu-24_04-lts", "sku": "server", "version": "24.04.202610250"},
+          "osDisk": {"createOption": "FromImage", "diskSizeGB": 32, "managedDisk": {"storageAccountType": "StandardSSD_LRS"}}
+        },
+        "networkProfile": {"networkInterfaces": [{"id": "[resourceId('Microsoft.Network/networkInterfaces', format('nic-{0}', variables('vmNames')[copyIndex()]))]"}]}
+      }
+    }
+  ]
+}

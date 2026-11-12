@@ -1,33 +1,34 @@
-# Báo cáo tiến độ giữa kỳ — Cloud Computing
+# Báo cáo tiến độ — Nhịp trên Azure Kubernetes
 
-## 1. Đề tài, mục tiêu và chức năng
+## 1. Đề tài và chức năng
 
-Đề tài **Nhịp** là ứng dụng quản lý công việc cá nhân, giúp người dùng theo dõi công việc và hạn hoàn thành. Ứng dụng có chức năng đăng nhập, thêm, xem, sửa, xóa, đánh dấu hoàn thành và lọc công việc. Mỗi tài khoản quản lý công việc của mình.
+Nhịp là ứng dụng quản lý công việc cá nhân: đăng nhập, thêm, xem, sửa, xóa, đánh dấu hoàn thành và lọc theo hạn. Dữ liệu của mỗi người được backend giới hạn theo tài khoản.
 
-## 2. Kiến trúc và công nghệ
+## 2. Kiến trúc
 
-Trình duyệt truy cập qua Cloudflare và Nginx trên VPS FPT Cloud. Nginx phục vụ tệp tĩnh và chuyển request tới Flask. Flask sử dụng gateway nội bộ để truy vấn Cloudflare D1 qua REST API. Các thành phần trên VPS được đóng gói bằng Docker.
+Ứng dụng chạy trên ba VM Azure: `nhip-cp`, `nhip-worker1`, `nhip-worker2`. Cụm Kubernetes dùng kubeadm, containerd và Flannel. Frontend Nginx và backend Flask có hai replica mỗi loại; dữ liệu lưu ở Cloudflare D1. Cloudflare quản lý DNS, proxy và HTTPS cho từng node.
 
-D1 gồm bảng `users` và `tasks`, liên kết qua `user_id`. Dự án không triển khai Worker hay R2.
+## 3. Tiến độ
 
-## 3. Tiến độ hiện tại
+Đã tạo ba VM riêng, khởi tạo cluster với ba node Ready, build và push image có tag phiên bản lên registry nội bộ, triển khai frontend/backend trong namespace `nhip`. Đã cấp HTTPS cho từng node và tạo bản backup D1 trên Azure.
 
-Đã xây dựng giao diện, backend và schema; triển khai VPS, Nginx, HTTPS và DNS Cloudflare; chuyển dữ liệu từ PostgreSQL sang D1; tạo tài khoản demo và cấu hình backup D1.
-
-Đang tổng hợp minh chứng và chuẩn bị nội dung trình bày. Chưa kiểm thử lại toàn bộ đăng nhập và CRUD sau khi chuyển D1; chưa quan sát lần backup chạy theo lịch; chưa kiểm thử tải lớn.
+Đã kiểm tra đăng nhập và đọc D1 qua ba subdomain. Chưa thực hiện bài demo scale bốn replica, rollout/rollback hoặc tắt worker trong lần triển khai này.
 
 ## 4. Triển khai và minh chứng
 
-Website: https://akaine.io.vn. Cloudflare đã ghi nhận cache HIT cho tài nguyên CSS. Trước khi chuyển database, PostgreSQL đã được sao lưu; dữ liệu nguồn và D1 đã được đối chiếu trước thời điểm chuyển luồng truy cập. Một bản xuất D1 đã được tạo trên VPS.
+- https://cp.akaine.io.vn — control plane.
+- https://worker1.akaine.io.vn — worker 1.
+- https://worker2.akaine.io.vn — worker 2.
+- `kubectl get nodes` ghi nhận ba node Ready; `kubectl get pods -n nhip -o wide` ghi nhận hai replica frontend và hai replica backend phân bố trên cả hai worker.
 
-## 5. Khó khăn và hướng giải quyết
+Các subdomain đi vào node tương ứng, sau đó Kubernetes Service có thể chuyển request tới Pod trên worker khác.
 
-- VPS ban đầu chỉ có IP nội bộ: cấp IP public riêng.
-- PostgreSQL và D1 dùng cú pháp SQL khác nhau: điều chỉnh schema và backend, đối chiếu dữ liệu trước khi chuyển.
-- Dữ liệu người dùng cần được bảo vệ khi qua CDN: cache tài nguyên tĩnh, để API trả `Cache-Control: no-store`.
+## 5. Khó khăn
 
-## 6. Phân công và kế hoạch
+- East Asia đã hết hạn mức vCPU và IP public: chọn Japan East cho cụm riêng.
+- Worker chưa tin chứng chỉ registry nội bộ: cấu hình CA cho containerd trên hai worker.
+- D1 sử dụng SQLite và REST API: giữ gateway nội bộ để backend truy cập qua HTTPS.
 
-Các phần việc gồm database, giao diện và backend, hạ tầng VPS và Cloudflare, báo cáo và thuyết trình. **Chưa có thông tin phân công theo từng thành viên.**
+## 6. Phân công và việc tiếp theo
 
-Tiếp theo: kiểm tra các chức năng trên D1, theo dõi backup tự động và hoàn thiện bài trình bày.
+Chưa có thông tin phân công theo từng thành viên. Cần bổ sung và chuẩn bị phần scale, cập nhật/rollback, mô phỏng tắt worker, ảnh minh chứng và báo cáo PDF theo đề.

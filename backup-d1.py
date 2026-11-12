@@ -10,11 +10,11 @@ import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
 
-ROOT = Path('/opt/cloud-midterm-d1')
+ROOT = Path(os.environ.get('NHIP_DATA_DIR', '/opt/cloud-midterm-d1'))
 BACKUPS = ROOT / 'backups'
 ACCOUNT = 'c6ababb4c45c2abec4bf14b84340a2d4'
 DATABASE = 'eb4b1d10-e6c2-4b83-a861-0fb04bb1747d'
-TOKEN = (ROOT / 'secrets/cf-api-token').read_text().strip()
+TOKEN = Path(os.environ.get('D1_TOKEN_FILE', ROOT / 'secrets/cf-api-token')).read_text().strip()
 URL = f'https://api.cloudflare.com/client/v4/accounts/{ACCOUNT}/d1/database/{DATABASE}/export'
 
 

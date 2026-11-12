@@ -19,3 +19,7 @@ __pycache__/
 *.pyc
 .venv/
 deployment-state.json
+.kube/
+kubeconfig*
+*.kubeconfig
+*.parameters.json

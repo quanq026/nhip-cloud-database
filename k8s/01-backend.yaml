@@ -1,0 +1,97 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nhip-backend
+  namespace: nhip
+spec:
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxSurge: 1, maxUnavailable: 0}
+  selector:
+    matchLabels: {app: nhip-backend}
+  template:
+    metadata:
+      labels: {app: nhip-backend}
+    spec:
+      automountServiceAccountToken: false
+      securityContext:
+        fsGroup: 10001
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector: {matchLabels: {app: nhip-backend}}
+          matchLabelKeys: [pod-template-hash]
+      tolerations:
+        - {key: node.kubernetes.io/not-ready, operator: Exists, effect: NoExecute, tolerationSeconds: 10}
+        - {key: node.kubernetes.io/unreachable, operator: Exists, effect: NoExecute, tolerationSeconds: 10}
+      containers:
+        - name: app
+          image: 10.44.1.10:5000/nhip-backend:v1-nodes
+          ports: [{containerPort: 8000}]
+          env:
+            - {name: PUBLIC_ORIGIN, value: "https://akaine.io.vn,https://cp.akaine.io.vn,https://worker1.akaine.io.vn,https://worker2.akaine.io.vn"}
+            - {name: SECRET_KEY_FILE, value: /run/session/session_key}
+          resources:
+            requests: {cpu: 50m, memory: 96Mi}
+            limits: {memory: 384Mi}
+          readinessProbe:
+            httpGet: {path: /readyz, port: 8000}
+            initialDelaySeconds: 5
+            periodSeconds: 15
+            timeoutSeconds: 12
+          livenessProbe:
+            httpGet: {path: /healthz, port: 8000}
+            initialDelaySeconds: 10
+            periodSeconds: 20
+          securityContext:
+            runAsUser: 10001
+            runAsGroup: 10001
+            runAsNonRoot: true
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: socket, mountPath: /run/d1}
+            - {name: session, mountPath: /run/session, readOnly: true}
+            - {name: app-tmp, mountPath: /tmp}
+        - name: d1-gateway
+          image: 10.44.1.10:5000/nhip-d1-gateway:v1
+          env:
+            - {name: D1_ACCOUNT_ID, value: c6ababb4c45c2abec4bf14b84340a2d4}
+            - {name: D1_DATABASE_ID, value: eb4b1d10-e6c2-4b83-a861-0fb04bb1747d}
+          resources:
+            requests: {cpu: 25m, memory: 48Mi}
+            limits: {memory: 192Mi}
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 10001
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: [ALL]}
+          volumeMounts:
+            - {name: socket, mountPath: /run/d1}
+            - {name: d1-token, mountPath: /run/secrets, readOnly: true}
+            - {name: gateway-tmp, mountPath: /tmp}
+      volumes:
+        - {name: socket, emptyDir: {}}
+        - {name: app-tmp, emptyDir: {}}
+        - {name: gateway-tmp, emptyDir: {}}
+        - name: session
+          secret:
+            secretName: nhip-credentials
+            items: [{key: session_key, path: session_key, mode: 292}]
+        - name: d1-token
+          secret:
+            secretName: nhip-credentials
+            items: [{key: d1_token, path: d1_token, mode: 256}]
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nhip-backend
+  namespace: nhip
+spec:
+  selector: {app: nhip-backend}
+  ports: [{name: http, port: 8000, targetPort: 8000}]
