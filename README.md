@@ -1,56 +1,133 @@
-# Nhịp — Ứng dụng quản lý công việc
+# Nhịp — quản lý công việc trên Azure Kubernetes
 
-Bài project môn Cloud Computing: ứng dụng quản lý công việc cá nhân chạy trên ba VM Azure, sử dụng Kubernetes và Cloudflare D1.
+Nhịp là ứng dụng quản lý công việc cá nhân cho bài giữa kỳ CKA. Frontend và backend chạy trên cụm Kubernetes gồm ba VM Azure. Dữ liệu được lưu trong Cloudflare D1.
 
 ## Chức năng
 
-- Đăng nhập bằng tài khoản đã cấp.
+- Đăng nhập bằng tài khoản đã cấp; mỗi người chỉ truy cập công việc của mình.
 - Thêm, xem, sửa, xóa và đánh dấu hoàn thành công việc.
-- Đặt hạn hoàn thành và lọc công việc theo trạng thái.
-- Mỗi tài khoản chỉ thao tác trên công việc của mình.
+- Đặt hạn và lọc theo trạng thái hoặc công việc quá hạn.
 
 ## Kiến trúc
 
 ```text
-Trình duyệt → Cloudflare DNS / proxy / cache
-                      ↓ HTTPS
-              Nginx trên một VM Azure
-                      ↓ NodePort 30080
-              Kubernetes Service → 2 frontend Nginx Pod
-                                          ↓
-                                   2 backend Flask Pod
-                                          ↓ Unix socket
-                                   D1 gateway → HTTPS → Cloudflare D1
+Trình duyệt
+    ↓ HTTPS
+Cloudflare DNS / proxy / cache
+    ↓
+Nginx trên VM nhận request
+    ↓ NodePort 30080
+Service frontend → 2 Pod frontend (Nginx, tệp tĩnh)
+    ↓
+Service backend  → 2 Pod backend (Flask + D1 gateway)
+    ↓ HTTPS REST API
+Cloudflare D1: users, tasks
 ```
 
-Cluster gồm một control plane và hai worker, cài bằng `kubeadm`, dùng containerd và Flannel. Mỗi deployment frontend/backend có hai replica, đang phân bố trên hai worker. Docker dùng để build image và đẩy lên registry HTTPS riêng trong VNet; tag được ghi rõ phiên bản.
+Mỗi backend Pod có hai container: Flask và D1 gateway, giao tiếp qua Unix socket. Gateway đọc token từ Kubernetes Secret và gửi query tới D1. Ứng dụng không dùng Cloudflare Worker hoặc R2.
 
-Cloudflare D1 chứa hai bảng `users` và `tasks`. Ứng dụng truy cập D1 qua REST API; dự án không triển khai Cloudflare Worker hay R2. D1 REST API dùng giới hạn API chung của Cloudflare và phù hợp cho demo tải nhỏ.
+| Node | Vai trò | IP nội bộ | HTTPS |
+|---|---|---|---|
+| `nhip-cp` | Control plane và registry | `10.44.1.10` | https://cp.akaine.io.vn |
+| `nhip-worker1` | Worker | `10.44.1.11` | https://worker1.akaine.io.vn |
+| `nhip-worker2` | Worker | `10.44.1.12` | https://worker2.akaine.io.vn |
 
-## Địa chỉ truy cập
+Tên miền chính: https://akaine.io.vn. Mỗi subdomain trỏ vào node tương ứng; Kubernetes Service có thể chuyển request đến Pod ở worker khác. Các địa chỉ cùng sử dụng D1; cookie phiên gắn với từng hostname.
 
-| Node | Địa chỉ HTTPS |
+## Công nghệ và tài nguyên
+
+- Azure Japan East, resource group `rg-nhip-k8s`: ba VM `Standard_B2als_v2`, mỗi VM 2 vCPU, 4 GiB RAM và SSD 32 GB.
+- Kubernetes `v1.35.10` cài bằng `kubeadm`, containerd `2.2.1` và Flannel `v0.28.10`.
+- Namespace `nhip`: hai replica frontend và hai replica backend, phân bố trên hai worker khi cụm hoạt động bình thường.
+- Docker build image; registry HTTPS `10.44.1.10:5000` nằm trong VNet và lưu các tag `v1`/`v2` của bài demo. Registry phụ thuộc control plane.
+- Nginx trên từng VM kết thúc HTTPS, chuyển request vào NodePort; Cloudflare proxy và Full (strict) được bật cho từng subdomain.
+
+## Cấu trúc source
+
+| Đường dẫn | Nội dung |
 |---|---|
-| Control plane | https://cp.akaine.io.vn |
-| Worker 1 | https://worker1.akaine.io.vn |
-| Worker 2 | https://worker2.akaine.io.vn |
+| `app.py`, `d1_proxy.py` | Flask API và gateway tới D1 |
+| `static/`, `Dockerfile.frontend` | Giao diện và image Nginx frontend |
+| `Dockerfile`, `Dockerfile.proxy` | Image backend và D1 gateway |
+| `schema-d1.sql` | Cấu trúc bảng `users`, `tasks` |
+| `k8s/` | Namespace, Deployment, Service, cấu hình Nginx và script build image |
+| `infra/azure/` | Template Azure và script chuẩn bị node |
+| `backup-d1.py` | Xuất backup D1 |
+| `docs/azure-k8s.md` | Hướng dẫn hạ tầng, triển khai và vận hành chi tiết |
+| `docs/bao-cao-tien-do.md` | Tóm tắt tiến độ giữa kỳ |
 
-Mỗi subdomain trỏ tới IP của node tương ứng. Kubernetes Service có thể chuyển request tiếp tới Pod trên worker khác; các địa chỉ cùng dùng một database D1. Tên miền chính https://akaine.io.vn cũng trỏ tới cụm Azure.
+## Xem trạng thái cụm
 
-## Cấu trúc chính
+Trên control plane, dùng tài khoản có kubeconfig của cluster:
 
-| Tệp | Nội dung |
+```sh
+kubectl get nodes -o wide
+kubectl get deployments,pods,services -n nhip -o wide
+kubectl get endpointslices -n nhip
+```
+
+Kỳ vọng: ba node `Ready`; `nhip-frontend` và `nhip-backend` đều `2/2`; mỗi deployment có một Pod trên mỗi worker. Endpoint `/readyz` kiểm tra đường kết nối từ backend tới D1; `/version` trả phiên bản backend.
+
+## Build và triển khai
+
+Trên control plane, từ thư mục source đã chuẩn bị:
+
+```sh
+sudo bash k8s/build-images.sh
+kubectl apply -f k8s/00-namespace.yaml
+```
+
+Trước lần triển khai đầu, tạo Secret từ **các file riêng trên máy quản trị**. Không đưa giá trị token hay session key vào Git hoặc ảnh chụp. Nếu Secret đã tồn tại, không chạy lại lệnh `create` để ghi đè ngoài ý muốn.
+
+```sh
+kubectl -n nhip create secret generic nhip-credentials \
+  --from-file=d1_token=/duong-dan-an-toan/d1-token \
+  --from-file=session_key=/duong-dan-an-toan/session-key
+kubectl apply -f k8s/01-backend.yaml -f k8s/02-frontend.yaml
+kubectl rollout status deployment/nhip-frontend -n nhip
+kubectl rollout status deployment/nhip-backend -n nhip
+```
+
+Các file và script dùng tên miền, IP, registry và D1 của môi trường hiện tại. Xem [hướng dẫn Azure](docs/azure-k8s.md) trước khi tạo lại ở môi trường khác. SSH và NodePort chỉ cho phép IP quản trị đã cấu hình; cập nhật NSG khi IP này thay đổi.
+
+## Demo Kubernetes
+
+Chạy trên control plane khi cần trình bày:
+
+```sh
+# Scale backend lên bốn replica và đưa về hai.
+kubectl scale deployment/nhip-backend -n nhip --replicas=4
+kubectl rollout status deployment/nhip-backend -n nhip
+kubectl get pods -n nhip -o wide
+kubectl scale deployment/nhip-backend -n nhip --replicas=2
+kubectl rollout status deployment/nhip-backend -n nhip
+
+# Cập nhật backend từ v1 lên v2, rồi quay lại phiên bản trước.
+kubectl set image deployment/nhip-backend -n nhip app=10.44.1.10:5000/nhip-backend:v2-nodes
+kubectl rollout status deployment/nhip-backend -n nhip
+kubectl rollout undo deployment/nhip-backend -n nhip
+kubectl rollout status deployment/nhip-backend -n nhip
+```
+
+Kiểm tra `/version` sau mỗi bước. `v2` là image demo có dấu phiên bản khác để trình bày rollout, không phải một tính năng mới.
+
+Để trình bày mất node, dừng **đúng `nhip-worker2` trong `rg-nhip-k8s`**, quan sát node `NotReady` và các Pod được tạo lại trên worker còn sống, sau đó khởi động lại VM. Chờ thao tác tắt hoàn tất trước khi gửi lệnh bật. Khi cả ba node đã `Ready`, có thể `kubectl rollout restart` từng deployment để phân bố lại Pod. Hostname của worker bị tắt không thể phục vụ; truy cập qua node còn hoạt động.
+
+## Kết quả kiểm tra ngày 12/11/2026
+
+| Nội dung | Kết quả |
 |---|---|
-| `app.py` | Backend Flask, đăng nhập và API công việc |
-| `static/` | Giao diện web |
-| `d1_proxy.py` | Gateway nội bộ giới hạn kết nối đến D1 của dự án |
-| `schema-d1.sql` | Bảng và chỉ mục D1 |
-| `Dockerfile`, `Dockerfile.frontend`, `Dockerfile.proxy` | Image backend, frontend và D1 gateway |
-| `k8s/` | Namespace, Deployment, Service và cấu hình Nginx |
-| `infra/azure/` | Template ba VM và script chuẩn bị cluster |
-| `backup-d1.py` | Xuất bản backup D1 |
-| `docs/azure-k8s.md` | Hướng dẫn vận hành, giới hạn và lệnh demo |
-| `OPERATIONS.md` | Ghi chú lịch sử về VPS FPT trước khi chuyển sang Azure |
-| `docs/bao-cao-tien-do.md` | Báo cáo tiến độ giữa kỳ |
+| Cluster và phân bố Pod | Ba node `Ready`; frontend/backend `2/2`, mỗi deployment có Pod trên cả hai worker. |
+| Đăng nhập | Thành công trên cả ba subdomain; API danh sách công việc trả 200. |
+| Kiểm thử ứng dụng | 6 kiểm thử tích hợp đạt: đăng nhập, CRUD, phân quyền, Origin/CSRF, input và đăng xuất. |
+| Scale | Backend đạt 4 replica: 2 trên mỗi worker; sau đó đưa về 2. |
+| Rollout/rollback | Rollout `v2` trả phiên bản `v2`; đã rollback về `v1`. Một request ngay sau rollback trả 502, các request sau trả 200. Chưa xác định nguyên nhân 502. |
+| Tắt worker | `nhip-worker2` chuyển `NotReady`; 2 frontend và 2 backend được tạo trên `worker1`. Website qua node còn lại trả `/readyz` 200. Worker 2 sau đó được bật lại; Pod đã phân bố về cả hai worker. |
 
-Script và cấu hình gắn với môi trường demo hiện tại; cần điều chỉnh trước khi dùng ở môi trường khác. Secret, mật khẩu, private key và backup được giữ bên ngoài repository.
+Thời gian quan sát trong lần tắt worker khoảng **80 giây** đến khi các replica trên worker còn lại sẵn sàng; đây là một phép đo demo, không phải SLA. Lần khôi phục đầu gặp tình trạng lệnh bật được gửi trước khi Azure hoàn tất lệnh tắt; gửi lại lệnh bật sau khi tắt xong đã đưa worker trở về `Ready`.
+
+## Dữ liệu và chi phí
+
+D1 là nguồn dữ liệu đang sử dụng. PostgreSQL cũ là bản trước khi chuyển D1 và không tự đồng bộ. Backup D1 được xuất tại `/opt/nhip-k8s/backups` trên control plane; cron lúc 02:47 giờ Việt Nam đã được cài nhưng chưa xác nhận lần chạy tự động. Backup trên cùng VM không bảo vệ khi mất toàn bộ VM.
+
+Ba VM mới có chi phí Azure; dự toán PAYG lúc tạo khoảng **4,13 USD/ngày** cho VM, IP và ổ đĩa, chưa tính các khoản khác. Số credit còn lại chưa xác nhận. Ba VM trong resource group `RG-K8S` là cụm khác và cũng đang chạy; không dừng hoặc xóa chúng khi dọn tài nguyên Nhịp.

@@ -12,7 +12,7 @@ Nhịp là ứng dụng quản lý công việc cá nhân: đăng nhập, thêm,
 
 Đã tạo ba VM riêng, khởi tạo cluster với ba node Ready, build và push image có tag phiên bản lên registry nội bộ, triển khai frontend/backend trong namespace `nhip`. Đã cấp HTTPS cho từng node và tạo bản backup D1 trên Azure.
 
-Đã kiểm tra đăng nhập và đọc D1 qua ba subdomain. Chưa thực hiện bài demo scale bốn replica, rollout/rollback hoặc tắt worker trong lần triển khai này.
+Đã kiểm tra đăng nhập và đọc D1 qua ba subdomain; sáu kiểm thử API đạt. Đã thử scale backend lên bốn replica, rollout `v2` và rollback `v1`, tắt `worker2` và khôi phục cụm. Một request ngay sau rollback trả 502; các request sau trả 200, nguyên nhân chưa xác định.
 
 ## 4. Triển khai và minh chứng
 
@@ -31,4 +31,4 @@ Các subdomain đi vào node tương ứng, sau đó Kubernetes Service có th�
 
 ## 6. Phân công và việc tiếp theo
 
-Chưa có thông tin phân công theo từng thành viên. Cần bổ sung và chuẩn bị phần scale, cập nhật/rollback, mô phỏng tắt worker, ảnh minh chứng và báo cáo PDF theo đề.
+Chưa có thông tin phân công theo từng thành viên. Cần bổ sung ảnh minh chứng và báo cáo PDF theo đề; tiếp tục tìm nguyên nhân 502 khi rollback.

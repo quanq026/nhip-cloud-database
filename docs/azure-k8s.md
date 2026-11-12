@@ -67,7 +67,9 @@ kubectl rollout undo deployment/nhip-backend -n nhip
 kubectl rollout status deployment/nhip-backend -n nhip
 ```
 
-Đề yêu cầu tắt một worker và quan sát Pod. Thực hiện vào lúc demo có kiểm soát, sau đó khởi động lại worker; chưa thực hiện trong lần thiết lập này. Một hostname trỏ đến worker bị tắt sẽ không hoạt động, dù ứng dụng vẫn có thể phục vụ qua node còn lại.
+Ngày 12/11/2026 đã thử tắt `nhip-worker2`: node chuyển `NotReady`, hai frontend và hai backend được tạo trên `nhip-worker1`, `/readyz` qua node còn lại trả 200. Sau đó đã bật lại worker và phân bố Pod về cả hai worker. Thời gian quan sát tới khi replica sẵn sàng khoảng 80 giây; đây là một lần đo demo. Khi làm lại, chờ Azure hoàn tất lệnh tắt trước khi gửi lệnh bật. Một hostname trỏ đến worker bị tắt sẽ không hoạt động, dù ứng dụng vẫn có thể phục vụ qua node còn lại.
+
+Đã thử scale backend lên bốn replica và rollout `v2` rồi rollback `v1`. Một request ngay sau rollback trả 502; các request sau trả 200. Chưa xác định nguyên nhân của 502, nên không kết luận rollout không gián đoạn.
 
 ## Dữ liệu, backup và chi phí
 
